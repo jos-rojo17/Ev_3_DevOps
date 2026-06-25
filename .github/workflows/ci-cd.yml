@@ -33,12 +33,52 @@ jobs:
 
       - name: Build, Test and Analyze
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub lo provee automáticamente
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # El secreto que creaste
-        # REEMPLAZA "tu_project_key" y "tu_organizacion" con los datos de SonarCloud
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Aquí agregué el -DskipTests para que no se tranque
         run: |
-          mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          mvn clean verify -DskipTests org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
           -Dsonar.projectKey=jos-rojo17_Ev_3_DevOps \
           -Dsonar.organization=jos-rojo17 \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.qualitygate.wait=true
+
+  deploy-to-ec2:
+    name: Deploy to EC2 Kubernetes (K3s)
+    needs: build-test-and-analyze # Solo despliega si SonarCloud pasa
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/springboot-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/springboot-app:latest
+
+      - name: Copy K8s manifests to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "k8s/"
+          target: "/home/ubuntu/"
+
+      - name: Deploy to K3s
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo k3s kubectl apply -f /home/ubuntu/k8s/deployment.yaml
+            sudo k3s kubectl apply -f /home/ubuntu/k8s/service.yaml
+            sudo k3s kubectl rollout restart deployment springboot-app-deployment

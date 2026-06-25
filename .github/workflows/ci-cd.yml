@@ -38,7 +38,7 @@ jobs:
         # REEMPLAZA "tu_project_key" y "tu_organizacion" con los datos de SonarCloud
         run: |
           mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-          -Dsonar.projectKey=tu_project_key \
-          -Dsonar.organization=tu_organizacion \
+          -Dsonar.projectKey=jos-rojo17_Ev_3_DevOps \
+          -Dsonar.organization=jos-rojo17 \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.qualitygate.wait=true

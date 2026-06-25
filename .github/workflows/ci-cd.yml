@@ -1,39 +1,44 @@
-name: CI/CD Pipeline
+name: DevOps CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-
-  build:
-
+  build-test-and-analyze:
+    name: Build, Test and SonarCloud Analysis
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Clonar repositorio
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
 
-      - name: Configurar Java
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
 
-      - name: Dar permisos Maven
-        run: chmod +x mvnw
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
-      - name: Compilar proyecto
-        run: ./mvnw clean package -DskipTests
-
-      - name: Analisis SonarQube
+      - name: Build, Test and Analyze
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub lo provee automáticamente
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # El secreto que creaste
+        # REEMPLAZA "tu_project_key" y "tu_organizacion" con los datos de SonarCloud
         run: |
-            ./mvnw sonar:sonar \
-              -Dsonar.projectKey=proyecto-springboot-usuarios \
-              -Dsonar.host.url=$SONAR_HOST_URL \
-              -Dsonar.token=$SONAR_TOKEN
+          mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=tu_project_key \
+          -Dsonar.organization=tu_organizacion \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.qualitygate.wait=true

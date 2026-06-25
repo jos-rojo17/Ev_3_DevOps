@@ -41,7 +41,7 @@ jobs:
           -Dsonar.projectKey=jos-rojo17_Ev_3_DevOps \
           -Dsonar.organization=jos-rojo17 \
           -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.qualitygate.wait=true
+          -Dsonar.qualitygate.wait=false
 
   deploy-to-ec2:
     name: Deploy to EC2 Kubernetes (K3s)

@@ -1,0 +1,1 @@
+feature: adición de nueva característica de prueba para evaluación
